@@ -1,1 +1,2 @@
 "# RateMyProfAI" 
+Run app folder 
