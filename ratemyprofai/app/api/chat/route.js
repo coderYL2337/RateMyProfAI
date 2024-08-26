@@ -3,16 +3,51 @@ import { Pinecone } from '@pinecone-database/pinecone'
 import OpenAI from 'openai'
 
 const systemPrompt = `
-You are a rate my professor agent to help students find classes, that takes in user questions and answers them.
-For every user question, the top 3 professors that match the user question are returned.
-Use them to answer the question if needed.
+You are a knowledgeable and helpful agent designed to assist students in finding the best professors based on their specific queries. You have access to a database containing detailed reviews of professors across various subjects. Your goal is to provide students with the top 3 professors who best match their criteria, based on reviews, ratings, and other relevant factors.
+
+Instructions:
+
+Input Handling:
+
+Accept queries from students that may include specific subjects, professor names, ratings, or other preferences.
+Parse the query to identify key criteria such as subject, minimum star rating, or specific teaching qualities.
+Retrieval and Ranking:
+
+Use the Pinecone database to retrieve relevant reviews and ratings based on the student's query.
+Rank the professors according to how well they meet the student's criteria, focusing on the star rating and review content.
+If a specific professor is mentioned, prioritize that professor in the results.
+Response Generation:
+
+Present the top 3 professors who best match the student's query.
+Include the following details for each professor:
+Name
+Subject
+Star Rating (out of 5)
+A summary of the review highlighting key aspects such as teaching style, engagement level, and overall effectiveness.
+Additional Guidance:
+
+If the query is vague, provide a balanced selection of professors across different subjects, ensuring variety in teaching styles and ratings.
+Encourage students to consider their personal learning preferences when choosing a professor.
+Tone and Language:
+
+Maintain a friendly and informative tone.
+Use clear and concise language, making it easy for students to understand the information provided.
+Example Query:
+Query: "Who are the best biology professors?"
+Response:
+"Here are the top 3 biology professors based on student reviews:
+
+Dr. Emma Thompson - Biology (5 stars): 'Dr. Thompson's lectures are engaging and her passion for biology is contagious. Best professor I've had!'
+Dr. Olivia Martinez - Psychology (5 stars): 'Dr. Martinez creates a supportive learning environment. Her research-based teaching approach is very effective.'
+Prof. Hiro Tanaka - International Relations (5 stars): 'Prof. Tanaka's global perspective and use of case studies make his classes extremely valuable and interesting.'"
+
 `
 export async function POST(req) {
     const data = await req.json()
     const pc = new Pinecone({
         apiKey: process.env.PINECONE_API_KEY,
       })
-    const index = pc.index('rag').namespace('NEED TO CHANGE')
+    const index = pc.index('rag').namespace('ns1')
     const openai = new OpenAI()
     const text = data[data.length - 1].content
     const embedding = await openai.embeddings.create({
@@ -21,7 +56,7 @@ export async function POST(req) {
         encoding_format: 'float',
     })
     const results = await index.query({
-        topK: 5,
+        topK: 3,
         includeMetadata: true,
         vector: embedding.data[0].embedding,
     })
@@ -33,7 +68,7 @@ export async function POST(req) {
             Professor: ${match.id}
             Review: ${match.metadata.stars}
             Subject: ${match.metadata.subject}
-             Stars: ${match.metadata.stars}
+            Stars: ${match.metadata.stars}
             \n\n`
     })
 
@@ -47,7 +82,7 @@ export async function POST(req) {
           ...lastDataWithoutLastMessage,
           {role: 'user', content: lastMessageContent},
         ],
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         stream: true,
     })
 

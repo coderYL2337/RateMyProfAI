@@ -7,7 +7,7 @@ import { Box, Button, TextField, Stack } from '@mui/material'
 export default function Home() {
   const [messages, setMessages] = useState([
     {
-      role: 'assistnat',
+      role: 'assistant',
       content: 'Hello! I am your Rate My Prof AI assistant. How can I help you today?'
     },
   ])
